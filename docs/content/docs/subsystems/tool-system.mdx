@@ -1,0 +1,85 @@
+---
+title: 工具系统 (Tool System)
+description: 45+ Agent 工具的设计架构、注册与执行流程
+---
+
+## 工具系统架构
+
+每个工具包含：实现逻辑、UI 渲染组件、提示词指令、权限定义。
+
+```mermaid
+graph TB
+    subgraph "工具注册表"
+        REG[tools.ts]
+    end
+    subgraph "核心工具"
+        FS[文件系统: Read/Write/Edit/Grep/Glob]
+        EXEC[执行: Bash/PowerShell]
+        AGENT[Agent: AgentTool/SendMessage]
+        TASK[任务: TaskCreate/List/Stop]
+        WEB[Web: WebSearch/WebFetch]
+        MCP[MCP: MCPTool/ListResources]
+    end
+    subgraph "执行层"
+        PERM[权限检查]
+        EXECUTOR[StreamingToolExecutor]
+        HOOKS[工具钩子]
+    end
+    REG --> FS & EXEC & AGENT & TASK & WEB & MCP
+    FS --> PERM --> EXECUTOR --> HOOKS
+```
+
+## 工具分类
+
+### 文件系统工具
+- **FileReadTool**: 文件读取 (含图片处理)
+- **FileWriteTool**: 文件写入
+- **FileEditTool**: 精确字符串替换 (含类型系统)
+- **GlobTool / GrepTool**: 模式匹配 / 内容搜索
+- **NotebookEditTool**: Jupyter Notebook 编辑
+
+### 执行工具
+- **BashTool**: Shell 命令 (17 文件: 权限、安全、破坏性命令警告)
+- **PowerShellTool**: PowerShell (12 支持文件)
+
+### Agent 编排
+- **AgentTool**: 生成子 Agent (17 文件含内置 Agent)
+- **TaskCreateTool / TaskListTool / TaskStopTool**: 后台任务管理
+- **SendMessageTool**: 跨 Agent 通信
+- **WorkflowTool**: 多步骤工作流编排
+
+## 工具执行流程
+
+```mermaid
+sequenceDiagram
+    participant AI as AI 模型
+    participant QE as QueryEngine
+    participant Perm as 权限系统
+    participant Tool as 工具实现
+
+    AI->>QE: tool_use block
+    QE->>Perm: hasPermissionsToUseTool()
+    Perm->>Perm: auto/classifier/interactive
+    Perm-->>QE: 允许/拒绝
+    QE->>Tool: execute(input)
+    Tool-->>QE: tool_result
+    QE->>AI: 注入上下文
+```
+
+## 权限路由
+
+```mermaid
+flowchart TD
+    TC[工具调用] --> CHECK{权限模式}
+    CHECK -->|auto| ALLOW[自动允许]
+    CHECK -->|interactive| DIALOG[用户确认对话框]
+    CHECK -->|coordinator| COORD[协调器决策]
+    CHECK -->|swarm| SWARM[Swarm Worker]
+    DIALOG --> ACCEPT{用户选择}
+    ACCEPT -->|允许| ALLOW
+    ACCEPT -->|拒绝| DENY
+```
+
+## 核心类型 (Tool.ts, 29 KB)
+
+每个工具定义包含: `name`, `description`, `inputSchema`, `prompt` (模型指令), `feature` (编译时门控), `renderToolUse` (UI 渲染), `isEnabled` (运行时检查)。

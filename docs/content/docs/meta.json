@@ -1,0 +1,24 @@
+{
+  "title": "Free-Code 架构分析",
+  "description": "Claude Code CLI 架构设计分析文档",
+  "root": true,
+  "pages": [
+    "index",
+    "---架构概览---",
+    "architecture/layered-architecture",
+    "architecture/entry-points",
+    "---核心子系统---",
+    "subsystems/query-engine",
+    "subsystems/tool-system",
+    "subsystems/state-management",
+    "subsystems/mcp-integration",
+    "subsystems/skills-plugins",
+    "subsystems/bridge",
+    "subsystems/task-management",
+    "subsystems/ui-rendering",
+    "---数据流与模式---",
+    "flows/data-flows",
+    "patterns/design-patterns",
+    "patterns/build-system"
+  ]
+}

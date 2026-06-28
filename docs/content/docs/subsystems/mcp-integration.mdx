@@ -1,0 +1,75 @@
+---
+title: MCP 集成
+description: Model Context Protocol 客户端 — 8 种传输协议
+---
+
+## MCP 架构
+
+MCP 子系统支持 8 种传输协议，从 4 个配置作用域加载。
+
+```mermaid
+graph TB
+    subgraph "配置"
+        SCOPE[4 作用域<br/>enterprise/user/project/local]
+        POLICY[企业策略<br/>allowed/denied 过滤]
+    end
+
+    subgraph "连接管理"
+        CONNECT[connectToServer<br/>memoized 工厂]
+    end
+
+    subgraph "8 种传输"
+        STDIO[stdio 子进程]
+        SSE[sse SSE+OAuth]
+        HTTP[http Streamable]
+        WS[ws WebSocket]
+        IDE[sse-ide/ws-ide]
+        SDK[sdk 进程内]
+        PROXY[claudeai-proxy]
+    end
+
+    SCOPE --> CONNECT
+    POLICY --> CONNECT
+    CONNECT --> STDIO & SSE & HTTP & WS & IDE & SDK & PROXY
+```
+
+## 配置作用域
+
+| 作用域 | 来源 | 优先级 |
+|--------|------|--------|
+| **enterprise** | 托管策略 | 最高 (独占控制) |
+| **user** | 全局配置 | 高 |
+| **project** | `.mcp.json` 向上遍历 | 中 |
+| **local** | 本地配置 | 低 |
+
+## 连接生命周期
+
+```mermaid
+sequenceDiagram
+    participant UI as MCP UI
+    participant Conn as connectToServer
+    participant Svr as MCP Server
+
+    UI->>Conn: 连接 (memoized)
+    Conn->>Svr: 建立传输通道
+    Svr-->>Conn: 连接成功
+    Conn->>Conn: fetchTools/Resources/Commands
+    Conn-->>UI: MCPClientState
+
+    Note over Conn,Svr: 错误自动重连
+    Note over Conn,Svr: HTTP 404 + JSON-RPC -32001 过期检测
+```
+
+## 进程内服务器
+
+- **Chrome MCP**: 浏览器扩展集成
+- **Computer Use MCP**: 屏幕控制
+- **SDK MCP**: 同进程服务器 (无子进程开销)
+
+## 关键文件
+
+| 文件 | 行数 | 职责 |
+|------|------|------|
+| `services/mcp/client.ts` | ~3350 | 连接工厂 + 工具发现 |
+| `services/mcp/config.ts` | ~1580 | 多作用域配置加载 |
+| `services/mcp/types.ts` | - | Zod 模式 + 类型定义 |

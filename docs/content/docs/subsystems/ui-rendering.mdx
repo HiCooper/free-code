@@ -1,0 +1,61 @@
+---
+title: UI 渲染 — Ink 终端框架
+description: 自研 Ink 终端 UI 渲染引擎 (~85 文件)
+---
+
+## 渲染架构
+
+```mermaid
+graph TB
+    subgraph "React 层"
+        COMP[组件: REPL/Message/Input]
+        RECONCILER[自定义 Reconciler]
+    end
+    subgraph "布局"
+        YOGA[Yoga Layout Flexbox]
+    end
+    subgraph "渲染管线"
+        RENDER[节点 → 字符网格]
+        OPT[差异优化器]
+    end
+    subgraph "终端 I/O"
+        ANSI[ANSI/CSI 解析]
+        EVENTS[键盘/鼠标/焦点事件]
+    end
+
+    COMP --> RECONCILER --> YOGA --> RENDER --> OPT --> ANSI
+    EVENTS --> COMP
+```
+
+## 渲染流程
+
+```mermaid
+flowchart LR
+    A[React VDOM] --> B[Reconciler<br/>终端节点]
+    B --> C[Yoga Layout<br/>位置/尺寸]
+    C --> D[字符网格]
+    D --> E[差异检测]
+    E --> F[ANSI 序列]
+    F --> G[stdout]
+```
+
+## 核心组件映射
+
+| Ink 组件 | Web 对应 |
+|----------|---------|
+| `App` | `<div id="root">` |
+| `Box` | `<div>` (Flexbox) |
+| `Text` | `<span>` |
+| `Newline` | `<br>` |
+| `ScrollBox` | `overflow: scroll` |
+
+## 事件系统
+
+- **KeyboardEvent**: 按键 + 修饰键
+- **MouseEvent**: 点击/移动
+- **FocusEvent**: 终端焦点
+- **TerminalEvent**: Resize
+
+## 文本测量
+
+自定义实现 (无 DOM): 字符宽度 (CJK/Emoji)、ANSI 剥离、word-wrap 换行。

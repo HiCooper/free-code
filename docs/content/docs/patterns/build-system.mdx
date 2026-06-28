@@ -1,0 +1,69 @@
+---
+title: 构建系统
+description: 基于 Bun 的自定义构建系统与特性门控 DCE
+---
+
+## 构建架构
+
+```mermaid
+graph TB
+    subgraph "输入"
+        SRC[TypeScript 源码]
+        FLAGS[36 实验特性]
+        DEFINE[MACRO 定义]
+    end
+
+    subgraph "scripts/build.ts"
+        PARSE[CLI 参数解析]
+        RESOLVE[特性集解析]
+    end
+
+    subgraph "bun build"
+        BUNDLE[Bundler]
+        DCE["feature 宏 DCE"]
+        MINIFY[Minify + Bytecode]
+    end
+
+    subgraph "输出"
+        CLI[./cli 生产]
+        DEV[./cli-dev 开发]
+        COMP[./dist/cli 二进制]
+    end
+
+    SRC --> BUNDLE
+    FLAGS --> PARSE --> RESOLVE --> BUNDLE
+    BUNDLE --> DCE --> MINIFY --> CLI & DEV & COMP
+```
+
+## 构建命令
+
+| 命令 | 输出 | 特性 |
+|------|------|------|
+| `bun run build` | `./cli` | 仅 VOICE_MODE |
+| `bun run build:dev` | `./cli-dev` | + 时间戳 |
+| `bun run build:dev:full` | `./cli-dev` | 54 实验特性 |
+| `bun run compile` | `./dist/cli` | 独立二进制 |
+
+## 特性门控
+
+```typescript
+import { feature } from 'bun:bundle';
+if (feature('ULTRAPLAN')) { /* DCE 移除未启用代码 */ }
+```
+
+36 个实验特性: AGENT_MEMORY_SNAPSHOT, BRIDGE_MODE, ULTRAPLAN, ULTRATHINK, VOICE_MODE, SWARM_MODE, WORKTREE_MODE, COMPUTER_USE, CHROME_INTEGRATION, REMOTE_SESSIONS, TELEPORT, SANDBOX_MODE 等。
+
+## 外部依赖
+
+原生模块标记为 external (不打包): `@ant/*`, `audio-capture-napi`, `image-processor-napi` 等。
+
+## 构建流程
+
+```mermaid
+flowchart LR
+    A[读取版本] --> B[解析参数]
+    B --> C[计算特性集]
+    C --> D[设置 MACRO]
+    D --> E[bun build]
+    E --> F[输出二进制]
+```

@@ -1,0 +1,28 @@
+---
+title: Free-Code 项目架构分析
+description: Claude Code CLI 深度架构设计分析文档
+---
+
+## 项目概述
+
+**Free-Code** 是基于 Anthropic Claude Code CLI (v2.1.87) 的重构构建版本，一个运行在终端中的 AI 编程助手。
+
+关键修改: 遥测剥离、安全守卫移除、54 个实验特性解锁。
+
+### 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| **运行时** | Bun (>= 1.3.11) |
+| **语言** | TypeScript (ESNext) |
+| **UI 框架** | React 18 + Ink |
+| **构建** | `scripts/build.ts` + `bun build` |
+| **LLM SDK** | Anthropic / Bedrock / Vertex / Foundry / Codex |
+| **协议** | MCP, JSON-RPC, LSP |
+
+### 项目规模
+
+- **源文件**: ~1,934 个 TypeScript/TSX 文件
+- **命令**: 89+ 个斜杠命令
+- **工具**: 45 个 Agent 工具
+- **服务**: 23 个后端服务模块

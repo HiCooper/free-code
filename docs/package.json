@@ -1,0 +1,27 @@
+{
+  "name": "free-code-architecture-docs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@tabler/icons-react": "^3.0.0",
+    "fumadocs-core": "^15.0.0",
+    "fumadocs-mdx": "^13.0.0",
+    "fumadocs-mermaid": "^1.0.0",
+    "fumadocs-ui": "^15.0.0",
+    "mermaid": "^11.16.0",
+    "next": "^15.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.7.0"
+  }
+}

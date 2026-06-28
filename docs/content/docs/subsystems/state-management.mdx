@@ -1,0 +1,75 @@
+---
+title: 状态管理
+description: 基于自定义 Store 的集中式状态管理
+---
+
+## 架构概述
+
+使用**自定义轻量级 Store**（非 Redux/Zustand），基于 `useSyncExternalStore` 实现 React 集成。
+
+```mermaid
+graph TB
+    STORE[Store = createStore<br/>getState/setState/subscribe]
+    APPSTATE[AppState ~80 字段]
+    PROVIDER[AppStateProvider]
+    HOOK[useAppState selector]
+    ONCHANGE[onChangeAppState<br/>副作用处理]
+
+    APPSTATE --> STORE
+    STORE --> PROVIDER
+    PROVIDER --> HOOK
+    STORE --> ONCHANGE
+```
+
+## 核心文件
+
+| 文件 | 职责 |
+|------|------|
+| `state/store.ts` | 通用 `createStore<T>()` — 极简可观察容器 |
+| `state/AppStateStore.ts` | `AppState` 类型 + 默认值 |
+| `state/AppState.tsx` | React Context Provider + `useAppState` hook |
+| `state/onChangeAppState.ts` | 全局副作用: 设置持久化、权限同步 |
+| `state/selectors.ts` | 计算状态选择器 |
+
+## Store 实现
+
+```typescript
+function createStore<T>(initialState, onChange?) {
+  let state = initialState;
+  const listeners = new Set();
+  return {
+    getState: () => state,
+    setState: (updater) => {
+      const next = updater(state);
+      if (!Object.is(next, state)) {
+        state = next;
+        listeners.forEach(fn => fn());  // 通知订阅
+        onChange?.(state);              // 副作用
+      }
+    },
+    subscribe: (fn) => { listeners.add(fn); return () => listeners.delete(fn); }
+  };
+}
+```
+
+## 数据流
+
+```mermaid
+flowchart LR
+    A[用户操作] --> B[setAppState updater]
+    B --> C[Object.is 比较]
+    C -->|变更| D[通知订阅者]
+    D --> E[useAppState 重渲染]
+    C -->|未变| F[跳过]
+    B --> G[onChangeAppState]
+    G --> H[持久化/同步/权限]
+```
+
+## AppState 关键切片
+
+- `settings` — 用户配置 (模型、主题、环境变量)
+- `tasks` — 按 ID 索引的任务状态 Map
+- `mcp` — MCP 客户端连接、工具、命令
+- `plugins` — 启用/禁用的插件
+- `toolPermissionContext` — 权限模式 (auto/interactive/coordinator)
+- `notifications` — 通知队列
